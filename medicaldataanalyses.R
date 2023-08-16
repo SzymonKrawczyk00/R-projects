@@ -1,3 +1,14 @@
+library(stats)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(ggpubr)
+library(car)
+library(dunn.test)
+library(reshape2)
+library(stringr)
+
+
 ##########
 #Read data
 ##########
@@ -12,9 +23,9 @@ typeof(df)
 
 
 
-###########
-#Clear data
-###########
+############
+#Clean data#
+############
 
 #print('Number of missing values:')
 for (column_name in names(df)) {
@@ -34,12 +45,11 @@ for (column_name in names(cleardata)) {
   #print(column_values)
 }
 
-#########
-#Outliers
-#########
+##########
+#Outliers#
+##########
 
-library(ggplot2)
-library(gridExtra)
+
 
 par(mfrow = c(2, 4))  #Size of table with boxplots
 
@@ -52,7 +62,7 @@ for (column_name in names(cleardata)[4:length(cleardata)]) {
 #characteristics for selected groups 
 ####################################
 
-library(stats)
+
 
 for (column_name in names(cleardata)[4:length(cleardata)]) {
   column_values <- cleardata[[column_name]]
@@ -64,7 +74,7 @@ for (column_name in names(cleardata)[4:length(cleardata)]) {
 table(cleardata$grupa,cleardata$plec)
 
 
-library(dplyr)
+
 
 
 round_and_format <- function(x) {
@@ -141,9 +151,6 @@ ggdensity( cleardata, x = "LEU" ,
                    xlab = "hsCRP [mg/ l ] "
                    )
 
-
-
-
 x_columns <- names(cleardata)[3:length(cleardata)]
 
 
@@ -171,7 +178,7 @@ grid.arrange(grobs = plot_list, ncol = 2)
 #homoscedasticity#
 ##################
 
-library(car)
+
 
 leveneTest(hsCRP~grupa, data = cleardata)
 
@@ -225,7 +232,7 @@ for(i in result_anova){
   print(TukeyHSD(aov(as.formula(paste(i, "~ grupa")), data = cleardata)))
 }
 
-library(dunn.test)
+
 
 for(i in result_kruskal){
   print(dunn.test(cleardata[[i]],cleardata$grupa ))
@@ -246,7 +253,7 @@ KONTROLA <- cleardata %>%filter( grupa == "KONTROLA" )
 resultpearson<- cor.test(CHOR1$HGB, CHOR1$ERY, method = "pearson" )
 resultpearson$p.value
 resultpearson
-library(ggpubr)
+
 
 ggscatter(KONTROLA, x = "HGB" , y = "ERY" ,
            add = "reg.line", conf.int = TRUE,
@@ -255,6 +262,12 @@ ggscatter(KONTROLA, x = "HGB" , y = "ERY" ,
            ylab = "HGB [gl/dl] " ,
            xlab = "ERY [t/l] "
 )
+
+
+
+
+
+
 
 
 corelation_chor1 <- character()
@@ -284,6 +297,73 @@ for (i in 4:length(cleardata)) {
 
 cat(corelation_chor1)
 
+important_cor <- function(x) {
+
+  splitx <- strsplit(x, '\n')
+  for (i in splitx) {
+    
+    columns <- strsplit(i, ' ')
+    columns <- columns[[1]]
+    column1 <- columns[[1]]
+    column2 <- columns[[3]]
+   
+    #print(column1[[1]])
+    
+    j <- strsplit(i, ' p-value: ')
+    j2 <- str_replace_all(j[[2]], ' ', '') 
+    j3 <- as.numeric(j2)
+    
+    if(j3[2]<0.05){
+      #print(j3[2])
+      h <- strsplit(i, 'correlation: ')
+      #print(h)
+      h2 <- str_replace_all(h[[3]], ' ', '') 
+      h3 <- as.numeric(h2)
+      print(column1)
+      print(h3[2])
+      if(h3[2]>-1 && h3[2]< -0.7)
+      {
+        print(paste(column1,'rośnie, a ',column2,'maleje (bardzo silna korelacja)'))
+      }
+      if(h3[2]>-0.7 && h3[2]< -0.5)
+      {
+        print(paste(column1,'rośnie, a ',column2,'maleje (silna korelacja)'))
+      }
+      if(h3[2]>-0.5 && h3[2]< -0.3)
+      {
+        print(paste(column1,'rośnie, a ',column2,'maleje (korelacja o średnim natężeniu)'))
+      }      
+      if(h3[2]>-0.3 && h3[2]< -0.2)
+      {
+        print(paste(column1,'rośnie, a ',column2,'maleje (słaba korelacja)'))
+      }      
+      if(h3[2]>-0.2 && h3[2]<0.2)
+      {
+        print(paste('Brak korelaci pomiędzy: ',column1,' i ',column2))
+      } 
+      if(h3[2]>0.2 && h3[2]<0.3)
+      {
+        print(paste(column1,'maleje, a ',column2,'rośnie (słaba korelacja)'))
+      }   
+      if(h3[2]>0.3 && h3[2]<0.5)
+      {
+        print(paste(column1,'maleje, a ',column2,'rośnie (korelacja o średnim natężeniu)'))
+      }  
+      if(h3[2]>0.5 && h3[2]<0.7)
+      {
+        print(paste(column1,'maleje, a ',column2,'rośnie (silna korelacja)'))
+      }  
+      if(h3[2]>0.7 && h3[2]<1)
+      {
+        print(paste(column1,'maleje, a ',column2,'rośnie (bardzo silna korelacja)'))
+      }  
+      
+    }
+  }
+}
+important_cor(corelation_chor1)
+
+
 corelation_chor2 <- character()
 
 for (i in 4:length(cleardata)) {
@@ -310,6 +390,8 @@ for (i in 4:length(cleardata)) {
 
 
 cat(corelation_chor2)
+important_cor(corelation_chor2)
+
 
 corelation_kontrola <- character()
 
@@ -337,7 +419,7 @@ for (i in 4:length(cleardata)) {
 
 
 cat(corelation_kontrola)
-
+important_cor(corelation_kontrola)
 
 ##########
 #HEATMAPS#
@@ -365,8 +447,7 @@ cor_matrix_chor1 <- calculate_correlation_matrix(CHOR1)
 cor_matrix_chor2 <- calculate_correlation_matrix(CHOR2)
 cor_matrix_kontrola <- calculate_correlation_matrix(KONTROLA)
 
-library(ggplot2)
-library(reshape2)
+
 
 cor_matrix_chor1_melted <- subset(melt(cor_matrix_chor1), as.numeric(Var1) > 4 & as.numeric(Var2) > 4)
 cor_matrix_chor2_melted <- subset(melt(cor_matrix_chor2), as.numeric(Var1) > 4 & as.numeric(Var2) > 4)
